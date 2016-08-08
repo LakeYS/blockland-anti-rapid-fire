@@ -1,44 +1,93 @@
 deactivatePackage("antiRapidFire");
 package antiRapidFire 
 {
+	//UseTool (default)
 	function serverCmdUseTool(%client,%t)
 	{
-		// This version is less glitchy but it uses schedules
-		
-		if(%client.antiRapidFireCheck)
+		if(%client.antiRapidFireChecked)
 		{
-			%client.antiRapidFireCheck = 0;
+			%client.antiRapidFireChecked = 0;
 			Parent::serverCmdUseTool(%client,%t);
 		}
 		else
 		{
-			if(isEventPending(%client.antiRapidFireSched) && !%client.antiRapidFireCheck)
-			{
-				cancel(%client.antiRapidFireSched);
-				%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t);
-				%client.antiRapidFireCheck = 0;
-			}
-			else
-			{
-				cancel(%client.antiRapidFireSched);
-				%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t);
-				%client.antiRapidFireCheck = 0;
-			}
+			cancel(%client.antiRapidFireSched);
+			%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t);
+			%client.antiRapidFireChecked = 0;
 		}
+	}
 		
-		//if(getSimTime()-%client.antiRapidFire >= 64 || !%client.antiRapidFire) 
-		//{ 
-		//	Parent::serverCmdUseTool(%client,%t); 
-		//	%client.antiRapidFire=getsimtime();
-		//}
+	//UnUseTool (1)
+	function serverCmdUnUseTool(%client)
+	{
+		if(%client.antiRapidFireChecked)
+		{
+			%client.antiRapidFireChecked = 0;
+			Parent::serverCmdUnUseTool(%client);
+		}
+		else
+		{
+			cancel(%client.antiRapidFireSched);
+			%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t,1);
+			%client.antiRapidFireChecked = 0;
+		}
 	}
 	
-	function antiRapidFireCheck(%client,%t)
+	//UseInventory (2)
+	function serverCmdUseInventory(%client,%t)
 	{
-		if(!isEventPending(%client.antiRapidFireSched) && !%client.antiRapidFireCheck)
+		if(%client.antiRapidFireChecked)
 		{
-			%client.antiRapidFireCheck = 1;
-			serverCmdUseTool(%client,%t);
+			%client.antiRapidFireChecked = 0;
+			Parent::serverCmdUseInventory(%client,%t); // partially fixed a vulnerability
+		}
+		else
+		{
+			cancel(%client.antiRapidFireSched);
+			%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t,2);
+			%client.antiRapidFireChecked = 0;
+		}
+	}
+	
+	//UseSprayCan (3)
+	function serverCmdUseSprayCan(%client,%t)
+	{
+		if(%client.antiRapidFireChecked)
+		{
+			%client.antiRapidFireChecked = 0;
+			Parent::serverCmdUseSprayCan(%client,%t);
+		}
+		else
+		{
+			cancel(%client.antiRapidFireSched);
+			%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t,3);
+			%client.antiRapidFireChecked = 0;
+		}
+	}
+	
+	// antiRapidFireCheck ( Client, Tool, Type)
+	// Types:
+	// 0 Tools
+	// 1 Tools (un-use)
+	// 2 Inventory
+	// 3 Paint
+	function antiRapidFireCheck(%client,%t,%type)
+	{
+		if(!%client.antiRapidFireChecked)
+		{
+			%client.antiRapidFireChecked = 1;
+			
+			switch(%type)
+			{
+				case 1:
+					serverCmdUnUseTool(%client);
+				case 2:
+					serverCmdUseInventory(%client,%t);
+				case 3:
+					serverCmdUseSprayCan(%client,%t);
+				default:
+					serverCmdUseTool(%client,%t);
+			}
 		}
 	}
 };
