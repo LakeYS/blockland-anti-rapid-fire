@@ -1,8 +1,8 @@
 deactivatePackage("antiRapidFire");
-package antiRapidFire 
+package antiRapidFire
 {
 	//UseTool (default)
-	function serverCmdUseTool(%client,%t)
+	function serverCmdUseTool(%client,%t) // Use weapon::onUse instead?
 	{
 		if(%client.antiRapidFireChecked)
 		{
@@ -16,9 +16,9 @@ package antiRapidFire
 			%client.antiRapidFireChecked = 0;
 		}
 	}
-		
+
 	//UnUseTool (1)
-	function serverCmdUnUseTool(%client)
+	function serverCmdUnUseTool(%client) // Use WeaponImage::onUnMount() instead?
 	{
 		if(%client.antiRapidFireChecked)
 		{
@@ -32,7 +32,7 @@ package antiRapidFire
 			%client.antiRapidFireChecked = 0;
 		}
 	}
-	
+
 	//UseInventory (2)
 	function serverCmdUseInventory(%client,%t)
 	{
@@ -48,7 +48,7 @@ package antiRapidFire
 			%client.antiRapidFireChecked = 0;
 		}
 	}
-	
+
 	//UseSprayCan (3)
 	function serverCmdUseSprayCan(%client,%t)
 	{
@@ -64,19 +64,36 @@ package antiRapidFire
 			%client.antiRapidFireChecked = 0;
 		}
 	}
-	
+
+	//wand (4)
+	function serverCmdWand(%client)
+	{
+		if(%client.antiRapidFireChecked)
+		{
+			%client.antiRapidFireChecked = 0;
+		Parent::serverCmdWand(%client,%t);
+		}
+		else
+		{
+			cancel(%client.antiRapidFireSched);
+			%client.antiRapidFireSched = schedule(32,0,antiRapidFireCheck,%client,%t,4);
+			%client.antiRapidFireChecked = 0;
+		}
+	}
+
 	// antiRapidFireCheck ( Client, Tool, Type)
 	// Types:
 	// 0 Tools
 	// 1 Tools (un-use)
 	// 2 Inventory
 	// 3 Paint
+	// 4 Wand
 	function antiRapidFireCheck(%client,%t,%type)
 	{
-		if(!%client.antiRapidFireChecked)
+		if(!%client.antiRapidFireChecked && isObject(%client)) // The client check prevents us from getting stuck in a loop
 		{
 			%client.antiRapidFireChecked = 1;
-			
+
 			switch(%type)
 			{
 				case 1:
@@ -85,6 +102,8 @@ package antiRapidFire
 					serverCmdUseInventory(%client,%t);
 				case 3:
 					serverCmdUseSprayCan(%client,%t);
+				case 4:
+					serverCmdWand(%client,%t);
 				default:
 					serverCmdUseTool(%client,%t);
 			}
